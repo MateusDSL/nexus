@@ -1,0 +1,55 @@
+{
+  "name": "Nexus Chat Webhook",
+  "description": "Webhook para receber mensagens do chat e retornar respostas do agente IA",
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nexus-chat",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Process Message",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "// Recebe a mensagem do chat\nconst question = $input.first().json.question;\nconst sessionId = $input.first().json.sessionId;\nconst userId = $input.first().json.userId;\n\n// Aqui você pode integrar com sua IA preferida\n// Exemplo: OpenAI, Claude, Gemini, etc.\n\n// Por enquanto, retorna uma resposta simulada\nconst responses = [\n  `Entendi sua pergunta: \"${question}\". Como posso ajudá-lo melhor?`,\n  `Interessante! Sobre \"${question}\", posso fornecer mais informações.`,\n  `Obrigado pela pergunta. Vou processar: \"${question}\"`,\n  `Sua pergunta \"${question}\" foi recebida com sucesso!`\n];\n\nconst randomResponse = responses[Math.floor(Math.random() * responses.length)];\n\nreturn {\n  answer: randomResponse,\n  sessionId: sessionId,\n  timestamp: new Date().toISOString(),\n  originalQuestion: question\n};"
+      }
+    },
+    {
+      "name": "Respond to Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
+
