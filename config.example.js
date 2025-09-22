@@ -4,7 +4,6 @@
 export const n8nConfig = {
   baseUrl: process.env.REACT_APP_N8N_BASE_URL || 'https://mateusdsl35.app.n8n.cloud',
   webhookId: process.env.REACT_APP_N8N_WEBHOOK_ID || '7646b5b1-1d9a-4a47-aadc-31b0c77bdda6',
-  apiKey: process.env.REACT_APP_N8N_API_KEY || undefined,
   agentName: process.env.REACT_APP_AGENT_NAME || 'Nexus AI Agent',
   debug: process.env.REACT_APP_DEBUG === 'true' || false
 };

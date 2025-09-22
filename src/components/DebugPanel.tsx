@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './DebugPanel.css';
 
 interface DebugPanelProps {
   n8nConfig: {
     baseUrl: string;
     webhookId: string;
-    apiKey?: string;
   };
   isN8nEnabled: boolean;
   onTestConnection: () => Promise<boolean>;
@@ -54,7 +53,6 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
             <p><strong>Base URL:</strong> {n8nConfig.baseUrl}</p>
             <p><strong>Webhook ID:</strong> {n8nConfig.webhookId}</p>
             <p><strong>URL Completa:</strong> <code>{webhookUrl}</code></p>
-            <p><strong>API Key:</strong> {n8nConfig.apiKey ? '✅ Configurada' : '❌ Não configurada'}</p>
           </div>
           
           <div className="debug-actions">
@@ -78,7 +76,6 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
             <ol>
               <li>Ative o workflow no n8n</li>
               <li>Verifique se a URL está correta</li>
-              <li>Configure a API key se necessário</li>
               <li>Teste a conexão</li>
             </ol>
           </div>

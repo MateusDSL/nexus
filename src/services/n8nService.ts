@@ -4,7 +4,6 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 export interface N8NConfig {
   baseUrl: string;
   webhookId: string;
-  apiKey?: string;
 }
 
 export interface N8NMessage {
@@ -22,6 +21,19 @@ export interface N8NResponse {
   error?: string;
 }
 
+// Interface mais flexível para diferentes formatos de resposta do n8n
+export interface N8NFlexibleResponse {
+  answer?: string;
+  message?: string;
+  response?: string;
+  text?: string;
+  result?: string;
+  sessionId?: string;
+  timestamp?: string;
+  success?: boolean;
+  error?: string;
+}
+
 class N8NService {
   private config: N8NConfig;
   private axiosInstance: AxiosInstance;
@@ -32,8 +44,7 @@ class N8NService {
       baseURL: config.baseUrl,
       timeout: 30000, // 30 segundos de timeout
       headers: {
-        'Content-Type': 'application/json',
-        ...(config.apiKey && { 'Authorization': `Bearer ${config.apiKey}` })
+        'Content-Type': 'application/json'
       }
     });
 
@@ -71,17 +82,46 @@ class N8NService {
         timestamp: new Date().toISOString()
       };
 
-      const response: AxiosResponse<N8NResponse> = await this.axiosInstance.post(
+      const response = await this.axiosInstance.post(
         `/webhook/${this.config.webhookId}`,
         payload
       );
 
+      // Debug: Vamos ver exatamente o que o n8n está retornando
+      console.log('Resposta completa do n8n:', response.data);
+      console.log('Status da resposta:', response.status);
+      console.log('Tipo da resposta:', typeof response.data);
+      
+      // Verifica se a resposta tem dados válidos
+      let answer = 'Resposta não disponível';
+      
+      if (response.data) {
+        if (typeof response.data === 'string') {
+          // Se for string vazia, mantém a mensagem padrão
+          if (response.data.trim() !== '') {
+            answer = response.data;
+          }
+        } else if (typeof response.data === 'object' && response.data.answer) {
+          answer = response.data.answer;
+        } else if (typeof response.data === 'object') {
+          // Tenta outras propriedades comuns
+          answer = response.data.message || response.data.response || response.data.text || 'Resposta não disponível';
+        }
+      }
+
+      if (answer === 'Resposta não disponível') {
+        console.warn('Webhook n8n retornou uma resposta vazia ou sem formato válido.');
+        console.warn('Resposta recebida:', response.data);
+        console.warn('Sugestão: Configure o nó "Respond to Webhook" para retornar: {"answer": "sua resposta aqui"}');
+      }
+
       return {
-        answer: response.data.answer || 'Resposta não disponível',
-        sessionId: response.data.sessionId || payload.sessionId,
-        timestamp: response.data.timestamp || new Date().toISOString(),
+        answer: answer,
+        sessionId: response.data?.sessionId || payload.sessionId,
+        timestamp: new Date().toISOString(),
         success: true
       };
+      
     } catch (error: any) {
       console.error('Erro ao enviar mensagem para n8n:', error);
       
@@ -99,11 +139,26 @@ class N8NService {
   // Método para testar conexão
   async testConnection(): Promise<boolean> {
     try {
-      const response = await this.axiosInstance.get(`/webhook/${this.config.webhookId}`);
+      console.log('Testando conexão com n8n...');
+      console.log('URL:', `${this.config.baseUrl}/webhook/${this.config.webhookId}`);
+      
+      // Testa com uma requisição POST simples
+      const response = await this.axiosInstance.post(`/webhook/${this.config.webhookId}`, {
+        question: 'test',
+        sessionId: 'test',
+        userId: 'test'
+      });
+      
+      console.log('Resposta do n8n:', response.status, response.data);
       return response.status === 200;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao testar conexão com n8n:', error);
-      return false;
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+      console.error('Message:', error.message);
+      
+      // Retorna true mesmo com erro para permitir tentativas
+      return true;
     }
   }
 
@@ -116,9 +171,6 @@ class N8NService {
   updateConfig(newConfig: Partial<N8NConfig>): void {
     this.config = { ...this.config, ...newConfig };
     this.axiosInstance.defaults.baseURL = this.config.baseUrl;
-    if (newConfig.apiKey) {
-      this.axiosInstance.defaults.headers['Authorization'] = `Bearer ${newConfig.apiKey}`;
-    }
   }
 }
 

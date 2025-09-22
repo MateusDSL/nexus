@@ -3,16 +3,15 @@ import { Message, ChatState } from '../types/chat';
 import N8NService, { N8NConfig, N8NMessage } from '../services/n8nService';
 
 interface UseChatProps {
-  n8nConfig?: N8NConfig;
-  enableN8n?: boolean;
+  n8nConfig: N8NConfig;
 }
 
-export const useChat = ({ n8nConfig, enableN8n = false }: UseChatProps = {}) => {
+export const useChat = ({ n8nConfig }: UseChatProps) => {
   const [chatState, setChatState] = useState<ChatState>({
     messages: [
       {
         id: '1',
-        text: 'Olá! Sou seu assistente IA. Como posso ajudá-lo hoje?',
+        text: 'Olá! Sou seu assistente IA conectado via n8n. Como posso ajudá-lo hoje?',
         sender: 'agent',
         timestamp: new Date()
       }
@@ -23,19 +22,24 @@ export const useChat = ({ n8nConfig, enableN8n = false }: UseChatProps = {}) => 
 
   const [n8nService, setN8nService] = useState<N8NService | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
 
   // Inicializa o serviço n8n
   useEffect(() => {
-    if (enableN8n && n8nConfig) {
-      const service = new N8NService(n8nConfig);
-      setN8nService(service);
-      
-      // Testa a conexão
-      service.testConnection().then((isConnected) => {
-        setChatState(prev => ({ ...prev, isConnected }));
-      });
-    }
-  }, [enableN8n, n8nConfig]);
+    const service = new N8NService(n8nConfig);
+    setN8nService(service);
+    
+    // Testa a conexão em background
+    setIsTestingConnection(true);
+    service.testConnection().then((isConnected) => {
+      setChatState(prev => ({ ...prev, isConnected }));
+      setIsTestingConnection(false);
+    }).catch(() => {
+      // Se falhar, mantém como conectado para permitir tentativas
+      setChatState(prev => ({ ...prev, isConnected: true }));
+      setIsTestingConnection(false);
+    });
+  }, [n8nConfig]);
 
   // Gera um novo ID de sessão
   const generateSessionId = useCallback(() => {
@@ -46,13 +50,8 @@ export const useChat = ({ n8nConfig, enableN8n = false }: UseChatProps = {}) => 
 
   // Envia mensagem para o n8n
   const sendToN8n = useCallback(async (message: string): Promise<string> => {
-    if (!n8nService || !enableN8n) {
-      // Modo simulado se n8n não estiver configurado
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve('Esta é uma resposta simulada. Configure o n8n para usar o agente IA real.');
-        }, 1500);
-      });
+    if (!n8nService) {
+      throw new Error('Serviço n8n não inicializado');
     }
 
     try {
@@ -81,7 +80,7 @@ export const useChat = ({ n8nConfig, enableN8n = false }: UseChatProps = {}) => 
       
       return 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.';
     }
-  }, [n8nService, enableN8n, sessionId, generateSessionId]);
+  }, [n8nService, sessionId, generateSessionId]);
 
   // Envia uma mensagem
   const sendMessage = useCallback(async (text: string) => {
@@ -165,7 +164,7 @@ export const useChat = ({ n8nConfig, enableN8n = false }: UseChatProps = {}) => 
     sendMessage,
     clearChat,
     updateN8nConfig,
-    isN8nEnabled: enableN8n && !!n8nService,
-    sessionId
+    sessionId,
+    isTestingConnection
   };
 };

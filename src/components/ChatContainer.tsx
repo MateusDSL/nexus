@@ -9,14 +9,12 @@ import './ChatContainer.css';
 // Configuração do n8n - pode ser movida para variáveis de ambiente
 const n8nConfig = {
   baseUrl: process.env.REACT_APP_N8N_BASE_URL || 'https://mateusdsl35.app.n8n.cloud',
-  webhookId: process.env.REACT_APP_N8N_WEBHOOK_ID || '7646b5b1-1d9a-4a47-aadc-31b0c77bdda6',
-  apiKey: process.env.REACT_APP_N8N_API_KEY || undefined
+  webhookId: process.env.REACT_APP_N8N_WEBHOOK_ID || '7646b5b1-1d9a-4a47-aadc-31b0c77bdda6'
 };
 
 const ChatContainer: React.FC = () => {
-  const { chatState, sendMessage, isN8nEnabled, updateN8nConfig } = useChat({
-    n8nConfig,
-    enableN8n: true // Ativado automaticamente com a URL configurada
+  const { chatState, sendMessage, isTestingConnection } = useChat({
+    n8nConfig
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,7 +33,10 @@ const ChatContainer: React.FC = () => {
 
   const handleTestConnection = async (): Promise<boolean> => {
     try {
-      const response = await fetch(`${n8nConfig.baseUrl}/webhook/${n8nConfig.webhookId}`, {
+      const url = `${n8nConfig.baseUrl}/webhook/${n8nConfig.webhookId}`;
+      console.log('Testando conexão com URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -46,6 +47,13 @@ const ChatContainer: React.FC = () => {
           userId: 'debug'
         })
       });
+      
+      console.log('Status da resposta:', response.status);
+      console.log('Headers da resposta:', response.headers);
+      
+      const responseText = await response.text();
+      console.log('Conteúdo da resposta:', responseText);
+      
       return response.ok;
     } catch (error) {
       console.error('Erro no teste de conexão:', error);
@@ -57,24 +65,13 @@ const ChatContainer: React.FC = () => {
     <div className="chat-container">
       <DebugPanel 
         n8nConfig={n8nConfig}
-        isN8nEnabled={isN8nEnabled}
+        isN8nEnabled={true}
         onTestConnection={handleTestConnection}
       />
       <ChatHeader 
-        isConnected={chatState.isConnected}
-        agentName={isN8nEnabled ? "Nexus AI Agent (n8n)" : "Nexus AI Agent (Simulado)"}
+        isConnected={chatState.isConnected && !isTestingConnection}
+        agentName="Nexus AI Agent"
       />
-      
-      {!isN8nEnabled && (
-        <div className="chat-notice">
-          <div className="notice-content">
-            <span className="notice-icon">ℹ️</span>
-            <span className="notice-text">
-              Modo simulado ativo. Configure as variáveis de ambiente para conectar com n8n.
-            </span>
-          </div>
-        </div>
-      )}
       
       <div className="chat-messages">
         {chatState.messages.map((message) => (
@@ -96,8 +93,8 @@ const ChatContainer: React.FC = () => {
 
       <MessageInput 
         onSendMessage={handleSendMessage}
-        disabled={!chatState.isConnected}
-        placeholder={isN8nEnabled ? "Digite sua mensagem para o agente IA..." : "Digite sua mensagem (modo simulado)..."}
+        disabled={!chatState.isConnected || isTestingConnection}
+        placeholder={isTestingConnection ? "Testando conexão..." : "Digite sua mensagem para o agente IA..."}
       />
     </div>
   );

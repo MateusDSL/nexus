@@ -1,0 +1,67 @@
+{
+  "name": "Nexus Chat - Workflow Completo",
+  "description": "Workflow n8n completo para o chat Nexus com resposta configurada",
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nexus-chat",
+        "responseMode": "responseNode"
+      },
+      "position": [240, 300]
+    },
+    {
+      "name": "Process Message",
+      "type": "n8n-nodes-base.function",
+      "parameters": {
+        "functionCode": "// Recebe os dados do webhook\nconst question = $input.first().json.question;\nconst sessionId = $input.first().json.sessionId || 'default-session';\nconst userId = $input.first().json.userId || 'anonymous';\n\nconsole.log('Mensagem recebida:', question);\nconsole.log('Session ID:', sessionId);\nconsole.log('User ID:', userId);\n\n// Simula processamento da IA\nconst responses = [\n  `Olá! Entendi sua pergunta: \"${question}\". Como posso ajudá-lo melhor?`,\n  `Interessante pergunta sobre \"${question}\". Posso fornecer mais informações sobre isso.`,\n  `Obrigado pela pergunta! Sobre \"${question}\", posso te ajudar com isso.`,\n  `Sua pergunta \"${question}\" foi processada com sucesso!`,\n  `Entendi! Você quer saber sobre \"${question}\". Vou te ajudar.`\n];\n\n// Seleciona uma resposta aleatória\nconst randomResponse = responses[Math.floor(Math.random() * responses.length)];\n\n// Retorna a resposta no formato esperado pela interface\nreturn {\n  answer: randomResponse,\n  sessionId: sessionId,\n  timestamp: new Date().toISOString(),\n  originalQuestion: question,\n  userId: userId\n};"
+      },
+      "position": [460, 300]
+    },
+    {
+      "name": "Respond to Chat",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "nexus-chat-workflow",
+  "tags": ["nexus", "chat", "ai"]
+}

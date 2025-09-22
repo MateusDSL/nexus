@@ -39,28 +39,6 @@
   background: #a8a8a8;
 }
 
-.chat-notice {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 12px 20px;
-  border-bottom: 1px solid #e1e5e9;
-}
-
-.notice-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.notice-icon {
-  font-size: 16px;
-}
-
-.notice-text {
-  font-weight: 500;
-}
-
 /* Responsividade */
 @media (max-width: 768px) {
   .chat-container {
